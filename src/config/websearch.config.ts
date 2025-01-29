@@ -3,7 +3,6 @@ export const whitelistedDomains = [
     { name: 'FS.blog', url: 'fs.blog', scrappable: true },
     { name: 'arxiv', url: 'arxiv.org', scrappable: true },
     { name: 'instagram', url: 'instagram.com', scrappable: false },
-    { name: 'openai', url: 'openai.com', scrappable: true },
     { name: 'brain overment', url: 'brain.overment.com', scrappable: true },
     { name: 'reuters', url: 'reuters.com', scrappable: true },
     { name: 'mit technology review', url: 'technologyreview.com', scrappable: true },

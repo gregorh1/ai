@@ -34,25 +34,25 @@ const tools = [
     uuid: '3e662060-2294-4d5e-a3c2-8ea466ccd52e',
     name: 'files',
     description: `Use this tool to manage file operations:
-- Load content from URLs incl youtube (not embedded images!)
-- Create new text files to write down notes, some contents / analyze it / extract information from existing context or conversation / summarize available documents or informations  
+- Load content from URLs or local files (relative to app root)
+- Create new text files to write down notes, analyze content, extract information
 - Upload documents to generate shareable URLs
 
 Supports: text, images, audio, video, and specific website URLs (not search queries).
-Info: You may refer contents of documents / action result by using their UUIDs in a payload as presented in the examples below.
+Info: You may refer to contents of documents / action results by using their UUIDs in a payload.
 
 Note: You can load multiple files in one action, but uploads require separate actions.
 Warning: this tool can't be used with embedded images since you can read their content without any tools`,
     instruction: `Available actions and their formats:
 
-1. LOAD URL
+1. LOAD URL OR FILE
    {
      "action": "load",
      "payload": {
-       "path": "url or path"
+       "path": "url or file path (relative to app root)"
      }
    }
-   Use: Retrieves content from specified URLs.
+   Use: Retrieves content from URLs or local files.
 
 2. WRITE
    {
@@ -406,6 +406,44 @@ Notes:
 - Amount is optional and defaults to 1
 - All prices are returned in USD
 - Supports both cryptocurrencies and some fiat currencies`
+  },
+  {
+    uuid: uuidv4(),
+    name: 'central',
+    description: 'Use this tool to send reports to the central API for special tasks',
+    instruction: `To send a report to the central API, use:
+{
+  "action": "send_report",
+  "payload": {
+    "data": "<json data to send>"
+  }
+}
+
+Notes:
+- The data must be valid JSON
+- The API key is handled automatically
+- Returns confirmation of successful submission`
+  },
+  {
+    uuid: uuidv4(),
+    name: 'api',
+    description: 'Make HTTP requests to external APIs',
+    instruction: `To make an API request, use:
+{
+  "action": "request",
+  "payload": {
+    "endpoint": "https://api.example.com/path",
+    "method": "POST|GET|PUT|DELETE|PATCH",
+    "body": {}, // optional request body for POST/PUT/PATCH
+    "headers": {} // optional request headers
+  }
+}
+
+Notes:
+- endpoint must be a valid URL
+- method must be one of: GET, POST, PUT, DELETE, PATCH
+- body is optional and will be JSON stringified
+- headers are optional and will be merged with default Content-Type: application/json`
   }
 ];
 
@@ -414,17 +452,17 @@ const categories = memory_categories;
 const users = [
   {
     uuid: uuidv4(),
-    name: 'Adam',
-    email: 'adam@overment.com',
+    name: 'Grzegorz',
+    email: 'grzegorz.hul@gmail.com',
     token: process.env.API_KEY, // random token for auth
     active: true,
-    phone: '+1234567890', // placeholder phone
-    context: 'developer from Krakow',
+    phone: '+48500500500', // placeholder phone
+    context: 'developer from Sosnowiec',
     environment: JSON.stringify({
-      location: 'Krakow, at home.',
+      location: 'Sosnowiec, at home.',
       time: '2024-11-16T16:28:00.000Z',
       weather: 'Partly cloudy, 12°C',
-      music: 'AC/DC - Back in Black',
+      music: 'Simon & Garfunkel - The Sound of Silence',
       activity: 'Coding.'
     })
   }
@@ -445,8 +483,8 @@ const messages = [
   {
     uuid: uuidv4(),
     conversation_uuid: conversations[0].uuid,
-    role: 'user',
-    content_type: 'text',
+    role: 'user' as const,
+    content_type: 'text' as const,
     content: 'Hi, can you help me with the project setup?',
     source: 'chat',
     created_at: new Date().toISOString(),
@@ -455,8 +493,8 @@ const messages = [
   {
     uuid: uuidv4(),
     conversation_uuid: conversations[0].uuid,
-    role: 'assistant',
-    content_type: 'text',
+    role: 'assistant' as const,
+    content_type: 'text' as const,
     content: "Sure! Let's get started. What framework are you using?",
     source: 'chat',
     created_at: new Date().toISOString(),
@@ -512,7 +550,7 @@ const conversationMemories = [
 ];
 
 const main = async () => {
-  console.log('🌱 Seeding...');
+  console.log('�� Seeding...');
 
   try {
     await db.insert(schema.tools).values(tools);

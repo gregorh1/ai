@@ -19,6 +19,10 @@ import db from '../../database/db';
 import { documents } from '../../schema/document';
 import {youtubeService} from './youtube.service';
 import { CoreMessage } from 'ai';
+import {promises as fs} from 'fs';
+import path from 'path';
+
+const APP_ROOT = process.cwd();
 
 const filePayloadSchema = z.discriminatedUnion('action', [
   z.object({
@@ -177,16 +181,16 @@ const WritePayloadSchema = z.object({
 });
 
 const fileService = {
-  load: async (path: string, conversation_uuid: string, span?: LangfuseSpanClient): Promise<DocumentType> => {
+  load: async (file_path: string, conversation_uuid: string, span?: LangfuseSpanClient): Promise<DocumentType> => {
     try {
-      const is_url = isValidUrl(path);
-      const is_youtube = is_url && youtubeService.isYoutubeUrl(path);
-      const is_direct_file = is_url && !is_youtube && isDirectFileUrl(path);
+      const is_url = isValidUrl(file_path);
+      const is_youtube = is_url && youtubeService.isYoutubeUrl(file_path);
+      const is_direct_file = is_url && !is_youtube && isDirectFileUrl(file_path);
 
       span?.event({
         name: 'file_load_attempt',
         input: {
-          path,
+          file_path,
           type: is_url ? 
             (is_youtube ? 'youtube_url' : 
              is_direct_file ? 'direct_file_url' : 
@@ -197,7 +201,7 @@ const fileService = {
 
       if (is_url) {
         if (is_youtube) {
-          const transcript = await youtubeService.getTranscript(path, 'en', span);
+          const transcript = await youtubeService.getTranscript(file_path, 'en', span);
           const [tokenized_content] = await text_service.split(transcript, Infinity);
 
           return documentService.createDocument({
@@ -209,25 +213,25 @@ const fileService = {
               type: 'document',
               content_type: 'full',
               tokens: tokenized_content.metadata.tokens,
-              name: `YouTube Transcript: ${path}`,
-              source: path,
+              name: `YouTube Transcript: ${file_path}`,
+              source: file_path,
               mimeType: 'text/plain',
-              description: `Transcript from YouTube video: ${path}`
+              description: `Transcript from YouTube video: ${file_path}`
             }
           });
         }
 
         if (!is_direct_file) {
-          return webService.getContents(path, conversation_uuid, span);
+          return webService.getContents(file_path, conversation_uuid, span);
         }
 
-        const file_type = getFileTypeFromUrl(path);
+        const file_type = getFileTypeFromUrl(file_path);
         if (!file_type) {
           throw new Error('Unsupported file type');
         }
 
         const handler = fileTypeHandlers[file_type];
-        const {content, mimeType, path: stored_path} = await handler.load(path, span);
+        const {content, mimeType, path: stored_path} = await handler.load(file_path, span);
         const [tokenized_content] = await text_service.split(content, Infinity);
 
         return documentService.createDocument({
@@ -239,19 +243,58 @@ const fileService = {
             type: 'document',
             content_type: 'full',
             tokens: tokenized_content.metadata.tokens,
-            name: path.split('/').pop() ?? 'unknown',
+            name: file_path.split('/').pop() ?? 'unknown',
             source: stored_path,
             mimeType,
-            description: `File loaded from URL: ${path}`
+            description: `File loaded from URL: ${file_path}`
           }
         });
       } else {
-        throw new Error('Local path loading not implemented');
+        // Handle local file path
+        const absolute_path = path.isAbsolute(file_path) ? 
+          file_path : 
+          path.join(APP_ROOT, file_path);
+
+        const content = await fs.readFile(absolute_path, 'utf-8');
+        const file_name = path.basename(absolute_path);
+        const extension = file_name.split('.').pop()?.toLowerCase();
+        const mime_type = extension ? 
+          getMimeTypeFromExtension(extension) ?? 'text/plain' : 
+          'text/plain';
+
+        const upload_result = await uploadFile({
+          uuid: uuidv4(),
+          file: new Blob([content], { type: mime_type }),
+          type: FileType.TEXT,
+          original_name: file_name
+        });
+
+        span?.event({
+          name: 'local_file_load_success',
+          input: { file_path },
+          output: { mime_type, file_name, size: content.length }
+        });
+
+        return documentService.createDocument({
+          uuid: uuidv4(),
+          conversation_uuid,
+          source_uuid: conversation_uuid,
+          text: content,
+          metadata_override: {
+            type: 'document',
+            content_type: 'full',
+            tokens: (await text_service.split(content, Infinity))[0].metadata.tokens,
+            name: file_name,
+            source: `${process.env.APP_URL}/api/files/${upload_result.uuid}`,
+            mimeType: mime_type,
+            description: `File loaded from local path: ${file_path}`
+          }
+        });
       }
     } catch (error) {
       span?.event({
         name: 'file_load_error',
-        input: { path },
+        input: { file_path },
         output: { error: error instanceof Error ? error.message : 'Unknown error' },
         level: 'ERROR'
       });
@@ -259,7 +302,7 @@ const fileService = {
       return documentService.createErrorDocument({
         error,
         conversation_uuid,
-        context: `Failed to load file from path: ${path}`
+        context: `Failed to load file from path: ${file_path}`
       });
     }
   },

@@ -21,6 +21,7 @@ export interface SimplifiedAlbum {
   name: string;
   uri: string;
   artists: string;
+  total_tracks: number;
 }
 
 export interface SimplifiedSearchResults {

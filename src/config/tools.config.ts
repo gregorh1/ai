@@ -8,7 +8,8 @@ import { mapService } from '../services/tools/map.service';
 import { cryptoService } from '../services/tools/crypto.service';
 import { webService } from '../services/tools/web.service';
 import { calendarService } from '../services/agent/calendar.service';
-
+import { centralService } from '../services/tools/central.service';
+import { apiService } from '../services/tools/api.service';
 interface ToolService {
   execute: (action: string, payload: Record<string, any>, span?: any) => Promise<any>;
 }
@@ -23,7 +24,9 @@ export const toolsMap: Record<string, ToolService> = {
   maps: mapService,
   crypto: cryptoService,
   google: webService,
-  calendar: calendarService
+  calendar: calendarService,
+  central: centralService,
+  api: apiService
 } as const;
 
 export type ToolName = keyof typeof toolsMap; 

@@ -1,20 +1,21 @@
 import agi from './routes/agi';
 import files from './routes/files';
-import {Hono} from 'hono';
-import {logger} from 'hono/logger';
-import {prettyJSON} from 'hono/pretty-json';
-import {cors} from 'hono/cors';
-import {bodyLimit} from './middleware/upload';
-import {errorHandler} from './middleware/error';
-import {authMiddleware} from './middleware/auth';
-import {namingMiddleware} from './middleware/naming';
-import {mapperMiddleware} from './middleware/mapper';
+import { Hono } from 'hono';
+import { logger } from 'hono/logger';
+import { prettyJSON } from 'hono/pretty-json';
+import { cors } from 'hono/cors';
+import { bodyLimit } from './middleware/upload';
+import { errorHandler } from './middleware/error';
+import { authMiddleware } from './middleware/auth';
+import { namingMiddleware } from './middleware/naming';
+import { mapperMiddleware } from './middleware/mapper';
 import tools from './routes/tools';
 import auth from './routes/auth';
 import { vectorService } from './services/common/vector.service';
 import { cronService } from './services/common/cron.service';
 import conversation from './routes/conversation';
 import { rateLimit } from './middleware/rate-limit';
+import tasks from './routes/tasks';
 
 const app = new Hono();
 
@@ -52,6 +53,7 @@ app.route('/api/agi', agi);
 app.route('/api/conversation', conversation);
 app.route('/api/files', files);
 app.route('/api/tools', tools);
+app.route('/api/tasks', tasks);
 
 app.get('/', c => c.text('AGI is here.'));
 

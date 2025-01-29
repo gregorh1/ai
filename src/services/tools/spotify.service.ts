@@ -151,7 +151,12 @@ const spotifyService = {
       }
 
       const spotify_client = await spotifyService.createClient(state.config.user_uuid);
-      const res = await spotify_client.search(query, types, undefined, limit);
+      const res = await spotify_client.search(
+        query, 
+        types, 
+        undefined, 
+        Math.min(50, limit) as 50
+      );
       
       const mapArtists = (artists: any[]) => artists.map(artist => artist.name).join(', ');
 
@@ -312,7 +317,11 @@ const spotifyService = {
         }
       });
 
-      const selected_item = results[`${decision.result.split(':')[1]}s`]?.find(item => item.uri === decision.result);
+      const content_type = decision.result.split(':')[1];
+      const selected_item = content_type === 'track' ? results.tracks.find(item => item.uri === decision.result) :
+                          content_type === 'playlist' ? results.playlists.find(item => item.uri === decision.result) :
+                          content_type === 'album' ? results.albums.find(item => item.uri === decision.result) :
+                          undefined;
 
       await selection_generation?.end({
         output: {

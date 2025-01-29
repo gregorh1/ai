@@ -3,8 +3,8 @@ import { stateManager } from "../../services/agent/state.service";
 
 export const memoryRecallPrompt = () => {
     const state = stateManager.getState();
-    state.profile.ai_name = 'Alice';
-    state.profile.user_name = 'Adam';
+    state.profile.ai_name = 'Jennifer';
+    state.profile.user_name = 'Grzegorz';
     return `You're ${state.profile.ai_name}, speaking with ${state.profile.user_name} who canno't hear you right now since you're thinking right now about the questions you have to ask yourself to recall memories that will help you gather the information described in the user's query.
 
     <objective>
